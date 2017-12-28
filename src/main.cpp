@@ -43,7 +43,7 @@ std::vector<image_info> get_image_listing(
 		return results;
 	}
 
-	std::cout << dataFolder << std::endl;
+	//std::cout << dataFolder << std::endl;
 
 	for (boost::filesystem::directory_iterator it = boost::filesystem::directory_iterator(dataFolder);
 		it != boost::filesystem::directory_iterator(); ++it)
