@@ -21,12 +21,12 @@ double calculate_accuracy(anet_type& anet, const std::vector<image_info>& datase
 	{
 		// Load the input image.
 		ImageReaderType::Pointer imageReader = ImageReaderType::New();
-		imageReader->SetFileName(image_info.image_filename);
+		imageReader->SetFileName(image_info.image_filename.toStdString());
 		imageReader->Update();
 
 		// Load the label image.
 		LabelReaderType::Pointer labelReader = LabelReaderType::New();
-		labelReader->SetFileName(image_info.label_filename);
+		labelReader->SetFileName(image_info.label_filename.toStdString());
 		labelReader->Update();
 
 		// Randomly select a layer from the input image

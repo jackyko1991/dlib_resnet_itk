@@ -2,12 +2,13 @@
 #define STRUCT_H
 #include "iostream"
 #include <dlib/matrix.h>
+#include "QString"
 
 // The name of input images and assocaited labels in the learning dataset
 struct image_info
 {
-	std::string image_filename;
-	std::string label_filename;
+	QString image_filename;
+	QString label_filename;
 };
 
 // A single smaple. A mini-batch comprises man of these
