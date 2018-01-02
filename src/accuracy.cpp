@@ -1,14 +1,6 @@
 #include "accuracy.h"
-#include "typedef.h"
 
-#include <dlib/opencv.h>
-#include "dlib/data_io.h"
-#include "dlib/image_transforms.h"
-#include "dlib/dir_nav.h"
-#include <dlib/gui_widgets.h>
-#include <dlib/image_io.h>
-
-double calculate_accuracy(anet_type& anet, const std::vector<image_info>& dataset)
+double calculate_accuracy(anet_type& anet, std::vector<image_info>& dataset)
 {
 	int num_right = 0;
 	int num_wrong = 0;
