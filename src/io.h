@@ -5,6 +5,7 @@
 #include "typedef.h"
 #include "QFileInfo"
 #include <QDirIterator>
+#include <QDebug>
 
 #include "dlib/image_transforms.h"
 

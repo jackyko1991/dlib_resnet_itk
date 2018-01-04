@@ -20,7 +20,7 @@ std::vector<image_info> get_image_listing(
 )
 {
 	std::vector<image_info> results;
-	
+
 	QFileInfo dataFolderInfo(dataFolder);
 
 	if (!dataFolderInfo.isDir())
@@ -31,14 +31,15 @@ std::vector<image_info> get_image_listing(
 
 	//std::cout << dataFolder << std::endl;
 
-	QDirIterator dataFolderIterator(dataFolder);
+	QDirIterator dataFolderIterator(dataFolder, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
 
 	while (dataFolderIterator.hasNext())
 	{
+		dataFolderIterator.next();
 		image_info image_info;
 
-		image_info.image_filename = dataFolderIterator.filePath() + QString("/") + imageFileName;
-		image_info.label_filename = dataFolderIterator.filePath() + QString("/") + labelFileName;
+		image_info.image_filename = dataFolderIterator.fileInfo().absoluteFilePath() + QString("/") + imageFileName;
+		image_info.label_filename = dataFolderIterator.fileInfo().absoluteFilePath() + QString("/") + labelFileName;
 
 		std::cout << image_info.image_filename.toStdString() << std::endl;
 		std::cout << image_info.label_filename.toStdString() << std::endl;
