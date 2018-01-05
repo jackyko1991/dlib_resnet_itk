@@ -8,6 +8,8 @@
 #include "itkOpenCVImageBridge.h"
 #include "itkImageFileReader.h"
 
+#include <dlib/opencv.h>
+
 // includes from OpenCV
 #include "cv.h"
 
@@ -17,8 +19,6 @@
 #endif
 
 template<typename inputType, typename outputType>
-//typedef float inputType;
-//typedef float outputType;
 void ExtractImageFrom3D(typename itk::Image<inputType, 3>::Pointer Image3D, typename itk::Image<outputType, 2>::Pointer Image2D, unsigned int slice)
 {
 	// 3D region info
@@ -62,7 +62,6 @@ void ExtractImageFrom3D(typename itk::Image<inputType, 3>::Pointer Image3D, type
 };
 
 template<typename inputType>
-//typedef float inputType;
 void ConvertToCVImage(typename itk::Image<inputType, 2>::Pointer ITK2DImageInput, cv::Mat& cvImageOutput)
 {
 	typedef itk::Image<inputType, 2> inputImageType;

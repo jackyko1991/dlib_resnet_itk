@@ -1,16 +1,16 @@
 #include "io.h"
 
-// Read the list of training image files
-std::vector<image_info> get_train_image_listing(QString dataFolder)
-{
-	return get_image_listing(dataFolder + "/training");
-}
-
-// Read the list of testing image files
-std::vector<image_info> get_test_image_listing(QString dataFolder)
-{
-	return get_image_listing(dataFolder + "/testing");
-}
+//// Read the list of training image files
+//std::vector<image_info> get_train_image_listing(QString dataFolder)
+//{
+//	return get_image_listing(dataFolder + "/training");
+//}
+//
+//// Read the list of testing image files
+//std::vector<image_info> get_test_image_listing(QString dataFolder)
+//{
+//	return get_image_listing(dataFolder + "/testing");
+//}
 
 // Read the list of image and label pairs
 std::vector<image_info> get_image_listing(
@@ -41,8 +41,8 @@ std::vector<image_info> get_image_listing(
 		image_info.image_filename = dataFolderIterator.fileInfo().absoluteFilePath() + QString("/") + imageFileName;
 		image_info.label_filename = dataFolderIterator.fileInfo().absoluteFilePath() + QString("/") + labelFileName;
 
-		std::cout << image_info.image_filename.toStdString() << std::endl;
-		std::cout << image_info.label_filename.toStdString() << std::endl;
+		//std::cout << image_info.image_filename.toStdString() << std::endl;
+		//std::cout << image_info.label_filename.toStdString() << std::endl;
 
 		// check if both image file and label file exists
 		if (QFileInfo::exists(image_info.image_filename) &&

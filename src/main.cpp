@@ -2,34 +2,12 @@
 //#include "itkImageFileReader.h"
 //#include "itkOpenCVImageBridge.h"
 //
-//#include <dlib/opencv.h>
-//#include "dlib/data_io.h"
-//#include "dlib/image_transforms.h"
-//#include "dlib/dir_nav.h"
-//#include <dlib/gui_widgets.h>
-//#include <dlib/image_io.h>
-//#include "iterator"
-//#include "thread"
+
 #include "iostream"
-//
-//#include "typedef.h"
-//#include "resnet.h"
-//#include "struct.h"
-//#include "accuracy.h"
-//#include "io.h"
-//#include "dlibITKConvert.hpp"
 #include "train.h"
 
 #include "QString"
 #include "QCommandLineParser"
-
-//// includes from OpenCV
-//#include "cv.h"
-//
-//#if CV_VERSION_MAJOR > 2
-//#include "opencv2/opencv.hpp" // cv::imwrite
-//#include <opencv2/core/core.hpp>
-//#endif
 
 int main(int argc, char *argv[])
 {
@@ -64,6 +42,18 @@ int main(int argc, char *argv[])
 		parser.addOption(QCommandLineOption("train_dir","Directory containing training data","dir"));
 		parser.addOption(QCommandLineOption("test_dir", "Directory containing testing data", "dir"));
 		parser.addOption(QCommandLineOption("train_state", "Path to trainer state file", "path"));
+		parser.addOption(QCommandLineOption("network", "Path to save the trained network", "path"));
+		parser.addOption(QCommandLineOption("lr", "Initial learning rate (default = 0.1)", "double"));
+		parser.addOption(QCommandLineOption("decay_weight", "Decay weight (default = 0.001)", "double"));
+		parser.addOption(QCommandLineOption("momentum", "Momentum (default = 0.9)", "double"));
+		parser.addOption(QCommandLineOption("verbose", "Trainer verbose print out (default = true)", "bool"));
+		parser.addOption(QCommandLineOption("prog_thres","Iterations without progress threshold (default = 5000)", "unsigned int"));
+		parser.addOption(QCommandLineOption("bn_window", "Batch normalization statistics window size (default = 1000)", "unsigned int"));
+		parser.addOption(QCommandLineOption("queue_size", "Max size of data queue (default = 200", "unsigned int"));
+		parser.addOption(QCommandLineOption("threads", "Max number of data loader threads (default = number of cpu threads)", "unsigned int"));
+		parser.addOption(QCommandLineOption("image_name", "Image filename (default = image.nii.gz)", "string"));
+		parser.addOption(QCommandLineOption("label_name", "Label filename (default = label.nii.gz)", "string"));
+
 
 		parser.parse(QCoreApplication::arguments());
 		const QStringList trainArgs = parser.positionalArguments();
@@ -78,28 +68,102 @@ int main(int argc, char *argv[])
 		// Process actual command line arguments
 		parser.process(app);
 
-		// check if everything has set correctly
-		if (!parser.isSet("train_dir"))
+		// check if everything has set correctly and parse values to trainer
+		trainDNN train;
+
+		if (parser.isSet("train_dir"))
+		{
+			train.SetTrainDirectory(parser.value("train_dir"));
+		}
+		else
 		{
 			std::cerr << "Train directory not set properly" << std::endl;
-
-			parser.showHelp(1);
 			return 0;
 		}
 
-		if (!parser.isSet("train_state"))
+		if (parser.isSet("test_dir"))
 		{
-			std::cerr << "Trainer state path not set properly" << std::endl;
-
-			parser.showHelp(1);
-			return 0;
+			train.SetTestDirectory(parser.value("test_dir"));
 		}
+
+		if (parser.isSet("train_state"))
+		{
+			train.SetTrainStatePath(parser.value("train_dir"));
+		}
+		//else
+		//{
+		//	std::cerr << "Trainer state path not set properly" << std::endl;
+		//	return 0;
+		//}
+
+		if (parser.isSet("network"))
+		{
+			train.SetTrainDirectory(parser.value("network"));
+		}
+		//else
+		//{
+		//	std::cerr << "Train directory not set properly" << std::endl;
+		//	return 0;
+		//}
+
+		if (parser.isSet("lr"))
+		{
+			if (parser.value("lr").toDouble())
+			{
+				train.SetInitialLearningRate(parser.value("lr").toDouble());
+			}
+			else
+			{
+				std::cerr << "Learning rate shoule be a numeric number" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("decay_weight"))
+		{
+			if (parser.value("decay_weight").toDouble())
+			{
+				train.SetDecayWeight(parser.value("decay_weight").toDouble());
+			}
+			else
+			{
+				std::cerr << "Decay weight shoule be a numeric number" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("momentum"))
+		{
+			if (parser.value("momentum").toDouble())
+			{
+				train.SetMomentum(parser.value("momentum").toDouble());
+			}
+			else
+			{
+				std::cerr << "Momentum shoule be a numeric number" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("threads"))
+		{
+			if (parser.value("threads").toInt())
+			{
+				train.SetNumberOfDataLoaders(parser.value("threads").toInt());
+			}
+			else
+			{
+				std::cerr << "Number of threads shoule be an integer" << std::endl;
+				return 0;
+			}
+		}
+
+		// connect signals emitted from the training class
+		QObject::connect(&train, &trainDNN::TrainDataFolderEmpty, []() {exit(0); });
 
 		// start training
-		trainDNN train;
-		train.SetTrainDirectory(parser.value("train_dir"));
-		train.SetTrainStatePath(parser.value("train_state"));
 		train.Train();
+
 		
 	}
 	if (mode == "eval")
@@ -107,125 +171,6 @@ int main(int argc, char *argv[])
 		std::cout << "evaluation mode" << std::endl;
 	}
 
-	//net_type net;
-
-	//
-	//// prepare data for training
-	//const auto trainListing = get_train_image_listing(dataFolder);
-	//std::cout << "Images in training dataset: " << trainListing.size() << std::endl;
-	//if (trainListing.size() == 0)
-	//{
-	//	std::cout << "Training dataset folder is empty." << std::endl;
-	//	return 1;
-	//}
-
-	//std::vector<dlib::matrix<dlib::bgr_pixel>> images;
-	//std::vector<dlib::matrix<uint16_t>> labels;
-
-	//// Start a bunch of threads that read images from disk and pull out random crops.  It's
-	//// important to be sure to feed the GPU fast enough to keep it busy.  Using multiple
-	//// thread for this kind of data preparation helps us do that.  Each thread puts the
-	//// crops into the data queue.
-
-	//dlib::pipe<sample> data(200);
-
-	//auto f = [&data, &trainListing](time_t seed)
-	//{
-	//	dlib::rand rnd(time(0) + seed);
-	//	dlib::matrix<dlib::bgr_pixel> input_image;
-	//	dlib::matrix<uint16_t> index_label_image;
-	//	sample temp;
-	//	while (data.is_enabled())
-	//	{
-	//		// Pick a random input image.
-	//		int rnd_pick = rnd.get_random_32bit_number() % trainListing.size();
-	//		const image_info& image_info = trainListing[rnd_pick];
-
-	//		// Load the input image.
-	//		ImageReaderType::Pointer imageReader = ImageReaderType::New();
-	//		imageReader->SetFileName(image_info.image_filename.toStdString());
-	//		imageReader->Update();
-
-	//		// Load the label image.
-	//		LabelReaderType::Pointer labelReader = LabelReaderType::New();
-	//		labelReader->SetFileName(image_info.label_filename.toStdString());
-	//		labelReader->Update();
-
-	////		//std::cout << image_info.image_filename << std::endl;
-	////		//std::cout << image_info.label_filename << std::endl;
-
-	//		// Randomly pick a part of the image.
-	//		randomly_crop_image<Image3DType::PixelType>(imageReader->GetOutput(), labelReader->GetOutput(), temp, rnd);
-
-	//		// Push the result to be used by the trainer.
-	//		data.enqueue(temp);
-	//	}
-	//};
-	//std::thread data_loader1([f]() { f(1); });
-	//std::thread data_loader2([f]() { f(2); });
-	//std::thread data_loader3([f]() { f(3); });
-	//std::thread data_loader4([f]() { f(4); });
-
-	//std::cout << "Training start" << std::endl;
-
-	//// The main training loop.  Keep making mini-batches and giving them to the trainer.
-	//// We will run until the learning rate has dropped by a factor of 1e-6.
-	//int iterCount = 0;
-	//
-	//while (trainer.get_learning_rate() >= 1e-6)
-	//{
-	//	images.clear();
-	//	labels.clear();
-
-	//	// make a n-image mini-batch
-	//	sample temp;
-	//	while (images.size() < 15)
-	//	{
-	//		data.dequeue(temp);
-
-	//		images.push_back(std::move(temp.image));
-	//		labels.push_back(std::move(temp.label));
-
-	//		//dlib::image_window my_window1(outputSample.image, "Image");
-	//		//dlib::image_window my_window2(255* outputSample.label, "Label");
-
-	//		//my_window1.wait_until_closed();
-	//		//my_window2.wait_until_closed();
-	//	}
-
-	//	trainer.train_one_step(images, labels);
-
-	//	//if (iterCount % 25 == 0 && iterCount != 0)
-	//	//{
-	//	//	trainer.get_net();
-	//	//	net.clean();
-
-	//	//	// Make a copy of the network to use it for inference.
-	//	//	anet_type anet = net;
-
-	//	//	std::cout << "Testing the network..." << std::endl;
-
-	//	//	// Find the accuracy of the newly trained network on both the training and the validation sets.
-	//	//	std::cout << "Train accuracy: " << calculate_accuracy(anet, get_train_image_listing(dataFolder)) << std::endl;
-	//	//}
-
-	//	iterCount++;
-	//}
-
-	//// Training done, tell threads to stop and make sure to wait for them to finish before
-	//// moving on.
-	//data.disable();
-	//data_loader1.join();
-	//data_loader2.join();
-	//data_loader3.join();
-	//data_loader4.join();
-
-	//// also wait for threaded processing to stop in the trainer.
-	//trainer.get_net();
-
-	//net.clean();
-	//std::cout << "Saving network..." << std::endl;
-	//dlib::serialize("D:/Projects/dlib_resnet/net.dnn") << net;
 
 	return 0;
 }
