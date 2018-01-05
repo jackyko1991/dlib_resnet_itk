@@ -95,6 +95,20 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		);
 		dlib::extract_image_chip(temp, chip_details, net_output, dlib::interpolate_nearest_neighbor());
 
+		// visualize the result
+		// convert net_output to opencv mat
+		cv::Mat net_output_CV = dlib::toMat(net_output);
+		cv::Mat matDst(cv::Size(imageCV.cols * 3, imageCV.rows), imageCV.type(), cv::Scalar::all(0));
+		cv::Mat matRoi = matDst(cv::Rect(0,0, imageCV.cols, imageCV.rows));
+		imageCV.copyTo(matRoi);
+		matRoi = matDst(cv::Rect(imageCV.cols, 0, imageCV.cols, imageCV.rows));
+		labelCV.copyTo(matRoi);
+		matRoi = matDst(cv::Rect(imageCV.cols*2, 0, imageCV.cols, imageCV.rows));
+		net_output_CV.copyTo(matRoi);
+
+		imshow("result", matDst);
+		cv::waitKey(0.1);
+
 		// Compare the predicted values to the ground-truth values.
 		for (int r = 0; r < label.nr(); ++r)
 		{
