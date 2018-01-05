@@ -154,21 +154,20 @@ void trainDNN::Train()
 		}
 
 		trainer.train_one_step(images, labels);
-		std::cout << "" << std::endl;
 
-		//if (iterCount % 25 == 0 && iterCount != 0)
-		//{
-		//	trainer.get_net();
-		//	net.clean();
+		if (iterCount % m_testInterval == 0 && iterCount != 0 && !m_testDir.isEmpty())
+		{
+			trainer.get_net();
+			net.clean();
 
-		//	// Make a copy of the network to use it for inference.
-		//	anet_type anet = net;
+			// Make a copy of the network to use it for inference.
+			//anet_type anet = net;
 
-		//	std::cout << "Testing the network..." << std::endl;
+			std::cout << "Testing the network..." << std::endl;
 
-		//	// Find the accuracy of the newly trained network on both the training and the validation sets.
-		//	std::cout << "Train accuracy: " << calculate_accuracy(anet, get_train_image_listing(dataFolder)) << std::endl;
-		//}
+			// Find the accuracy of the newly trained network on both the training and the validation sets.
+			//std::cout << "Test accuracy = " << calculate_accuracy(anet, get_image_listing(m_testDir)) << std::endl;
+		}
 
 		iterCount++;
 	}

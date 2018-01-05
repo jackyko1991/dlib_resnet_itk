@@ -7,6 +7,7 @@
 #include "struct.h"
 #include "typedef.h"
 #include "io.h"
+#include "accuracy.h"
 #include "dlibITKConvert.hpp"
 
 #include "dlib/data_io.h"
@@ -32,6 +33,8 @@ public:
 	void SetBatchNormalizationStatsWindow(unsigned int bnStatsWindow);
 	void SetDataQueueSize(unsigned int dataQueueSize);
 	void SetNumberOfDataLoaders(unsigned int numOfDataLoaders);
+	void SetTestInterval(unsigned int testInterval);
+	void SetBatchSize(unsigned int batchSize);
 
 	void Train();
 
@@ -54,6 +57,8 @@ private:
 	unsigned int m_bnStatsWindow = 1000;
 	unsigned int m_dataQueueSize = 200;
 	unsigned int m_numOfDataLoaders = QThread::idealThreadCount(); // leave one thread for system usage
+	unsigned int m_testInterval = 50;
+	unsigned int m_batchSize = 15;
 
 	bool m_trainerVerbose = true;
 };

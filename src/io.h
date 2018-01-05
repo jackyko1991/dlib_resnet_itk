@@ -9,8 +9,6 @@
 
 #include "dlib/image_transforms.h"
 
-//std::vector<image_info> get_train_image_listing(QString dataFolder);
-//std::vector<image_info> get_test_image_listing(QString dataFolder);
 std::vector<image_info> get_image_listing(
 	QString dataFolder,
 	QString imageFileName = "image.nii.gz",

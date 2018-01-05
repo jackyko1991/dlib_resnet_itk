@@ -1,17 +1,5 @@
 #include "io.h"
 
-//// Read the list of training image files
-//std::vector<image_info> get_train_image_listing(QString dataFolder)
-//{
-//	return get_image_listing(dataFolder + "/training");
-//}
-//
-//// Read the list of testing image files
-//std::vector<image_info> get_test_image_listing(QString dataFolder)
-//{
-//	return get_image_listing(dataFolder + "/testing");
-//}
-
 // Read the list of image and label pairs
 std::vector<image_info> get_image_listing(
 	QString dataFolder,
