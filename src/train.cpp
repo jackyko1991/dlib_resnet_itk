@@ -160,13 +160,15 @@ void trainDNN::Train()
 			trainer.get_net();
 			net.clean();
 
-			// Make a copy of the network to use it for inference.
+			// //Make a copy of the network to use it for inference.
 			//anet_type anet = net;
 
 			std::cout << "Testing the network..." << std::endl;
 
-			// Find the accuracy of the newly trained network on both the training and the validation sets.
+			 //Find the accuracy of the newly trained network on both the training and the validation sets.
 			//std::cout << "Test accuracy = " << calculate_accuracy(anet, get_image_listing(m_testDir)) << std::endl;
+			std::cout << "Test accuracy = " << calculate_accuracy(net, get_image_listing(m_testDir)) << std::endl;
+
 		}
 
 		iterCount++;

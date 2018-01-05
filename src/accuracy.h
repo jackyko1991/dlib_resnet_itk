@@ -18,6 +18,6 @@
 #include <dlib/image_io.h>
 
 // Calculate the per-pixel accuracy on a dataset whose file names are supplied as a parameter.
-double calculate_accuracy(anet_type& anet, std::vector<image_info>& dataset);
+double calculate_accuracy(net_type& net, std::vector<image_info>& dataset);
 
 #endif // ACCURACY_H

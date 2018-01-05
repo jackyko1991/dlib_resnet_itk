@@ -1,7 +1,10 @@
 #include "accuracy.h"
 
-double calculate_accuracy(anet_type& anet, std::vector<image_info>& dataset)
+double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 {
+	// Make a copy of the network to use it for testing.
+	anet_type anet = net;
+
 	int num_right = 0;
 	int num_wrong = 0;
 
