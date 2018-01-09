@@ -10,7 +10,9 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 
 	dlib::matrix<dlib::bgr_pixel> image;
 	dlib::matrix<uint16_t> label;
-	dlib::matrix<uint16_t> net_output;
+	//dlib::matrix<uint16_t> net_output;
+
+	//dlib::image_window win;
 
 	for (const auto& image_info : dataset)
 	{
@@ -32,6 +34,9 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		{
 			rndSliceNum = rnd.get_integer(imageReader->GetOutput()->GetLargestPossibleRegion().GetSize()[2] - 1);
 		}
+		std::cout << image_info.image_filename.toStdString() << std::endl;
+		std::cout << "Selected Slice: " << rndSliceNum << std::endl;
+
 
 		Image2DType::Pointer image2D = Image2DType::New();
 		LabelImage2DType::Pointer label2D = LabelImage2DType::New();
@@ -93,21 +98,39 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 			dlib::centered_rect(temp.nc() / 2, temp.nr() / 2, image.nc(), image.nr()),
 			dlib::chip_dims(image.nr(), image.nc())
 		);
+		dlib::matrix<uint16_t> net_output;
 		dlib::extract_image_chip(temp, chip_details, net_output, dlib::interpolate_nearest_neighbor());
 
 		// visualize the result
 		// convert net_output to opencv mat
-		cv::Mat net_output_CV = dlib::toMat(net_output);
-		cv::Mat matDst(cv::Size(imageCV.cols * 3, imageCV.rows), imageCV.type(), cv::Scalar::all(0));
-		cv::Mat matRoi = matDst(cv::Rect(0,0, imageCV.cols, imageCV.rows));
-		imageCV.copyTo(matRoi);
-		matRoi = matDst(cv::Rect(imageCV.cols, 0, imageCV.cols, imageCV.rows));
-		labelCV.copyTo(matRoi);
-		matRoi = matDst(cv::Rect(imageCV.cols*2, 0, imageCV.cols, imageCV.rows));
-		net_output_CV.copyTo(matRoi);
+		//cv::Mat net_output_CV = dlib::toMat(net_output);
 
-		imshow("result", matDst);
-		cv::waitKey(0.1);
+		//cv::Mat matDst(cv::Size(imageCV.cols * 3, imageCV.rows), imageCV.type(), cv::Scalar::all(0));
+		//cv::Mat matRoi = matDst(cv::Rect(0,0, imageCV.cols, imageCV.rows));
+		//imageCV.copyTo(matRoi);
+		//matRoi = matDst(cv::Rect(imageCV.cols, 0, imageCV.cols, imageCV.rows));
+		//double labelMin, labelMax;
+		//cv::minMaxLoc(labelCV, &labelMin, &labelMax);
+		//labelCV = 255 * labelCV; // for better visualization
+		//labelCV.copyTo(matRoi);
+		//matRoi = matDst(cv::Rect(imageCV.cols*2, 0, imageCV.cols, imageCV.rows));
+		//double net_outputMin, net_outputMax;
+		//cv::minMaxLoc(net_output_CV, &net_outputMin, &net_outputMax);
+		//std::cout << "output min: " << net_outputMin << ", max: " << net_outputMax << std::endl;
+		//net_output_CV = 255 * net_output_CV;
+		//net_output_CV.copyTo(matRoi); // for better visualization
+
+		////imshow("result", matDst);
+		////cv::waitKey(0.1);
+		/*imwrite("./test.jpg", matDst);*/
+
+		// use dlib window to visualize image
+		//win.set_image(imageDlib);
+		//Sleep(500); // in microseconds
+
+		dlib::save_jpeg(imageDlib,"./output/image.jpg");
+		dlib::save_jpeg(label*255,"./output/ground_truth.jpg");
+		dlib::save_jpeg(net_output *255,"./output/output.jpg");
 
 		// Compare the predicted values to the ground-truth values.
 		for (int r = 0; r < label.nr(); ++r)

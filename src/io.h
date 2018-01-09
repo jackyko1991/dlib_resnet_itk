@@ -11,8 +11,8 @@
 
 std::vector<image_info> get_image_listing(
 	QString dataFolder,
-	QString imageFileName = "image.nii.gz",
-	QString labelFileName = "label.nii.gz");
+	QString imageFileName,
+	QString labelFileName);
 
 dlib::rectangle make_random_cropping_rect_resnet(
 	const dlib::matrix<dlib::bgr_pixel>& img,

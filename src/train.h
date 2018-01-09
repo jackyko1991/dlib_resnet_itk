@@ -33,6 +33,8 @@ public:
 	void SetBatchNormalizationStatsWindow(unsigned int bnStatsWindow);
 	void SetDataQueueSize(unsigned int dataQueueSize);
 	void SetNumberOfDataLoaders(unsigned int numOfDataLoaders);
+	void SetImagelName(QString imageName);
+	void SetLabelName(QString labelName);
 	void SetTestInterval(unsigned int testInterval);
 	void SetBatchSize(unsigned int batchSize);
 
@@ -48,6 +50,8 @@ private:
 	QString m_testDir;
 	QString m_trainStatePath = "trainer_state.dat";
 	QString m_networkPath = "net.dnn";
+	QString m_imageName = "image.nii.gz";
+	QString m_labelName = "label.nii.gz";
 
 	// Training parameters
 	double m_initialLearningRate = 0.1;

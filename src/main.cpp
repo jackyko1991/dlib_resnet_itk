@@ -1,8 +1,3 @@
-//#include "itkImage.h"
-//#include "itkImageFileReader.h"
-//#include "itkOpenCVImageBridge.h"
-//
-
 #include "iostream"
 #include "train.h"
 
@@ -49,11 +44,12 @@ int main(int argc, char *argv[])
 		parser.addOption(QCommandLineOption("verbose", "Trainer verbose print out (default = true)", "bool"));
 		parser.addOption(QCommandLineOption("prog_thres","Iterations without progress threshold (default = 5000)", "unsigned int"));
 		parser.addOption(QCommandLineOption("bn_window", "Batch normalization statistics window size (default = 1000)", "unsigned int"));
-		parser.addOption(QCommandLineOption("queue_size", "Max size of data queue (default = 200", "unsigned int"));
+		parser.addOption(QCommandLineOption("queue_size", "Max size of data queue (default = 200)", "unsigned int"));
 		parser.addOption(QCommandLineOption("threads", "Max number of data loader threads (default = number of cpu threads)", "unsigned int"));
 		parser.addOption(QCommandLineOption("image_name", "Image filename (default = image.nii.gz)", "string"));
 		parser.addOption(QCommandLineOption("label_name", "Label filename (default = label.nii.gz)", "string"));
-
+		parser.addOption(QCommandLineOption("interval", "Test interval (default = 50)", "unsigned int"));
+		parser.addOption(QCommandLineOption("batch_size", "Batch size (default = 15)","unsigned int"));
 
 		parser.parse(QCoreApplication::arguments());
 		const QStringList trainArgs = parser.positionalArguments();
@@ -88,23 +84,13 @@ int main(int argc, char *argv[])
 
 		if (parser.isSet("train_state"))
 		{
-			train.SetTrainStatePath(parser.value("train_dir"));
+			train.SetTrainStatePath(parser.value("train_state"));
 		}
-		//else
-		//{
-		//	std::cerr << "Trainer state path not set properly" << std::endl;
-		//	return 0;
-		//}
 
 		if (parser.isSet("network"))
 		{
 			train.SetTrainDirectory(parser.value("network"));
 		}
-		//else
-		//{
-		//	std::cerr << "Train directory not set properly" << std::endl;
-		//	return 0;
-		//}
 
 		if (parser.isSet("lr"))
 		{
@@ -147,13 +133,52 @@ int main(int argc, char *argv[])
 
 		if (parser.isSet("threads"))
 		{
-			if (parser.value("threads").toInt())
+			if (parser.value("threads").toInt() && parser.value("threads").toInt() > 0)
 			{
 				train.SetNumberOfDataLoaders(parser.value("threads").toInt());
 			}
 			else
 			{
-				std::cerr << "Number of threads shoule be an integer" << std::endl;
+				std::cerr << "Number of threads should be an integer" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("interval"))
+		{
+			if (parser.value("interval").toInt() && parser.value("interval").toInt() > 0)
+			{
+				train.SetTestInterval(parser.value("interval").toInt());
+			}
+			else
+			{
+				std::cerr << "Test interval shoule be an integer" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("batch_size"))
+		{
+			if (parser.value("batch_size").toInt() && parser.value("batch_size").toInt() > 0)
+			{
+				train.SetBatchSize(parser.value("batch_size").toInt());
+			}
+			else
+			{
+				std::cerr << "Batch size shoule be an integer" << std::endl;
+				return 0;
+			}
+		}
+
+		if (parser.isSet("queue_size"))
+		{
+			if (parser.value("queue_size").toInt() && parser.value("queue_size").toInt() > 0)
+			{
+				train.SetDataQueueSize(parser.value("queue_size").toInt());
+			}
+			else
+			{
+				std::cerr << "Data queue size shoule be an integer" << std::endl;
 				return 0;
 			}
 		}
@@ -172,5 +197,5 @@ int main(int argc, char *argv[])
 	}
 
 
-	return 0;
+	return app.exec();
 }

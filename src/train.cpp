@@ -64,7 +64,7 @@ void trainDNN::Train()
 	std::cout << trainer << std::endl;
 
 	// prepare data for training
-	const auto trainListing = get_image_listing(m_trainDir);
+	const auto trainListing = get_image_listing(m_trainDir, m_imageName, m_labelName);
 	std::cout << "Images in training dataset = " << trainListing.size() << std::endl;
 	if (trainListing.size() == 0)
 	{
@@ -139,7 +139,7 @@ void trainDNN::Train()
 
 		// make a n-image mini-batch
 		sample temp;
-		while (images.size() < 15)
+		while (images.size() < m_batchSize)
 		{
 			data.dequeue(temp);
 
@@ -155,19 +155,15 @@ void trainDNN::Train()
 
 		trainer.train_one_step(images, labels);
 
-		if (iterCount % m_testInterval == 0 && iterCount != 0 && !m_testDir.isEmpty())
+		if (trainer.get_train_one_step_calls() % m_testInterval == 0 && iterCount != 0 && !m_testDir.isEmpty())
 		{
 			trainer.get_net();
 			net.clean();
 
-			// //Make a copy of the network to use it for inference.
-			//anet_type anet = net;
-
 			std::cout << "Testing the network..." << std::endl;
 
 			 //Find the accuracy of the newly trained network on both the training and the validation sets.
-			//std::cout << "Test accuracy = " << calculate_accuracy(anet, get_image_listing(m_testDir)) << std::endl;
-			std::cout << "Test accuracy = " << calculate_accuracy(net, get_image_listing(m_testDir)) << std::endl;
+			std::cout << "Test accuracy = " << calculate_accuracy(net, get_image_listing(m_testDir,m_imageName, m_labelName)) << std::endl;
 
 		}
 
@@ -193,3 +189,17 @@ void trainDNN::Train()
 	dlib::serialize(m_networkPath.toStdString()) << net;
 }
 
+void trainDNN::SetBatchSize(unsigned int batchSize)
+{
+	m_batchSize = batchSize;
+}
+
+void trainDNN::SetTestInterval(unsigned int testInterval)
+{
+	m_testInterval = testInterval;
+}
+
+void trainDNN::SetDataQueueSize(unsigned int dataQueueSize)
+{
+	m_dataQueueSize = dataQueueSize;
+}
