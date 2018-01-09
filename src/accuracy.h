@@ -9,6 +9,10 @@
 #include "itkImage.h"
 #include "itkOpenCVImageBridge.h"
 #include "itkImageFileReader.h"
+#include "itkResampleImageFilter.h"
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+#include <itkNormalizeImageFilter.h>
 
 #include <dlib/opencv.h>
 #include "dlib/data_io.h"

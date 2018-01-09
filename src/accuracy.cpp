@@ -8,7 +8,7 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 	int num_right = 0;
 	int num_wrong = 0;
 
-	dlib::matrix<dlib::bgr_pixel> image;
+	dlib::matrix<float> image;
 	dlib::matrix<uint16_t> label;
 	//dlib::matrix<uint16_t> net_output;
 
@@ -21,10 +21,83 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		imageReader->SetFileName(image_info.image_filename.toStdString());
 		imageReader->Update();
 
+		// perform normalization on the images
+		itk::NormalizeImageFilter<Image3DType, Image3DType>::Pointer normalFilter = itk::NormalizeImageFilter<Image3DType, Image3DType>::New();
+		normalFilter->SetInput(imageReader->GetOutput());
+		normalFilter->Update();
+
 		// Load the label image.
 		LabelReaderType::Pointer labelReader = LabelReaderType::New();
 		labelReader->SetFileName(image_info.label_filename.toStdString());
 		labelReader->Update();
+
+		// resample to isotropic image
+		Image3DType::Pointer imageITK = Image3DType::New();
+		LabelImage3DType::Pointer labelITK = LabelImage3DType::New();
+
+		if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
+			imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] || 
+			imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+		{
+			Image3DType::SpacingType oldSpacing = imageReader->GetOutput()->GetSpacing();
+			Image3DType::SizeType oldSize = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize();
+
+			// using min voxel spacing
+			Image3DType::SpacingType newSpacing;
+			double minSpacing = 9999999999999.9;
+			for (int i = 0; i < 3; i++)
+			{
+				if (imageReader->GetOutput()->GetSpacing()[i] < minSpacing)
+					minSpacing = imageReader->GetOutput()->GetSpacing()[i];
+			}
+
+			for (int i = 0; i < 3; i++)
+			{
+				newSpacing[i] = minSpacing;
+			}
+
+			Image3DType::SizeType newSize;
+			for (int i = 0; i < 3; i++)
+			{
+				newSize[i] = ceil(oldSpacing[i] * oldSize[i] / newSpacing[i]);
+			}
+
+			// linear interpolator for image
+			typedef itk::LinearInterpolateImageFunction< Image3DType> LinearInterpolatorType;
+			LinearInterpolatorType::Pointer linInterpolator = LinearInterpolatorType::New();
+
+			itk::ResampleImageFilter<Image3DType, Image3DType>::Pointer imageResampler = itk::ResampleImageFilter<Image3DType, Image3DType>::New();
+			imageResampler->SetInput(normalFilter->GetOutput());
+			imageResampler->SetOutputSpacing(newSpacing);
+			imageResampler->SetSize(newSize);
+			imageResampler->SetInterpolator(linInterpolator);
+			imageResampler->SetOutputOrigin(normalFilter->GetOutput()->GetOrigin());
+			imageResampler->SetOutputDirection(normalFilter->GetOutput()->GetDirection());
+			imageResampler->Update();
+			imageITK->Graft(imageResampler->GetOutput());
+			imageITK->SetMetaDataDictionary(imageResampler->GetOutput()->GetMetaDataDictionary());
+
+			// nearest neighbour interpolator for label
+			typedef itk::NearestNeighborInterpolateImageFunction< LabelImage3DType> NNInterpolatorType;
+			NNInterpolatorType::Pointer nnInterpolator = NNInterpolatorType::New();
+
+			itk::ResampleImageFilter<LabelImage3DType, LabelImage3DType>::Pointer labelResampler = itk::ResampleImageFilter<LabelImage3DType, LabelImage3DType>::New();
+			labelResampler->SetInput(labelReader->GetOutput());
+			labelResampler->SetOutputSpacing(newSpacing);
+			labelResampler->SetSize(newSize);
+			labelResampler->SetInterpolator(nnInterpolator);
+			labelResampler->SetOutputOrigin(normalFilter->GetOutput()->GetOrigin());
+			labelResampler->SetOutputDirection(normalFilter->GetOutput()->GetDirection());
+			labelResampler->Update();
+			labelITK->Graft(labelResampler->GetOutput());
+			labelITK->SetMetaDataDictionary(labelResampler->GetOutput()->GetMetaDataDictionary());
+		}
+
+		//std::cout << "===========================================" << std::endl;
+		//std::cout << "image" << std::endl;
+		//normalFilter->GetOutput()->Print(std::cout);
+		//std::cout << "image after resample" << std::endl;
+		//imageITK->Print(std::cout);
 
 		// Randomly select a layer from the input image
 		dlib::rand rnd(time(0));
@@ -32,11 +105,10 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		int rndSliceNum = -1;
 		while (rndSliceNum < 0)
 		{
-			rndSliceNum = rnd.get_integer(imageReader->GetOutput()->GetLargestPossibleRegion().GetSize()[2] - 1);
+			rndSliceNum = rnd.get_integer(labelITK->GetLargestPossibleRegion().GetSize()[2] - 1);
 		}
 		std::cout << image_info.image_filename.toStdString() << std::endl;
 		std::cout << "Selected Slice: " << rndSliceNum << std::endl;
-
 
 		Image2DType::Pointer image2D = Image2DType::New();
 		LabelImage2DType::Pointer label2D = LabelImage2DType::New();
@@ -47,8 +119,8 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		start[1] = 0;
 
 		Image2DType::SizeType size;
-		size[0] = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize()[0];
-		size[1] = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize()[1];
+		size[0] = imageITK->GetLargestPossibleRegion().GetSize()[0];
+		size[1] = imageITK->GetLargestPossibleRegion().GetSize()[1];
 
 		region2D.SetSize(size);
 		region2D.SetIndex(start);
@@ -59,20 +131,20 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		label2D->SetRegions(region2D);
 		label2D->Allocate();
 
-		ExtractImageFrom3D<Image3DType::PixelType, Image3DType::PixelType>(imageReader->GetOutput(), image2D, rndSliceNum);
-		ExtractImageFrom3D<LabelImage3DType::PixelType, LabelImage3DType::PixelType>(labelReader->GetOutput(), label2D, rndSliceNum);
-	
+		ExtractImageFrom3D<Image3DType::PixelType, Image3DType::PixelType>(imageITK, image2D, rndSliceNum);
+		ExtractImageFrom3D<LabelImage3DType::PixelType, LabelImage3DType::PixelType>(labelITK, label2D, rndSliceNum);
+
 		// convert the itk 2D image to openCV mat then to dlib matrix
 		cv::Mat imageCV, labelCV;
-		ConvertToCVImage<Image2DType::PixelType>(image2D, imageCV);
-		ConvertToCVImage<LabelImage2DType::PixelType>(label2D, labelCV);
+		ConvertToCVImage<Image2DType::PixelType, float>(image2D, imageCV);
+		ConvertToCVImage<LabelImage2DType::PixelType, unsigned char>(label2D, labelCV);
 
 		// Convert openCV mat to dlib matrix
-		cv::Mat imageCVBGR;
-		cv::cvtColor(imageCV, imageCVBGR, CV_GRAY2BGR);
+		//cv::Mat imageCVBGR;
+		//cv::cvtColor(imageCV, imageCVBGR, CV_GRAY2BGR);
 
-		dlib::cv_image<dlib::bgr_pixel> imageDlibCV(imageCVBGR);
-		dlib::matrix<dlib::bgr_pixel> imageDlib;
+		dlib::cv_image<float> imageDlibCV(imageCV);
+		dlib::matrix<float> imageDlib;
 		dlib::assign_image(imageDlib, imageDlibCV);
 
 		image = imageDlib;

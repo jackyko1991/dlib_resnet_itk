@@ -6,6 +6,7 @@
 #include <itkRescaleIntensityImageFilter.h>
 #include <itkImageRegionIterator.h>
 
+
 typedef itk::Image<float, 3> Image3DType;
 typedef itk::Image<unsigned char, 3> LabelImage3DType;
 typedef itk::Image<float, 2> Image2DType;

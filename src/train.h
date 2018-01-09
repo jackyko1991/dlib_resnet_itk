@@ -14,6 +14,8 @@
 //#include <dlib/gui_widgets.h>
 //#include <dlib/image_io.h>
 
+#include "itkNormalizeImageFilter.h"
+
 class trainDNN: public QObject
 {
 	Q_OBJECT
@@ -33,7 +35,7 @@ public:
 	void SetBatchNormalizationStatsWindow(unsigned int bnStatsWindow);
 	void SetDataQueueSize(unsigned int dataQueueSize);
 	void SetNumberOfDataLoaders(unsigned int numOfDataLoaders);
-	void SetImagelName(QString imageName);
+	void SetImageName(QString imageName);
 	void SetLabelName(QString labelName);
 	void SetTestInterval(unsigned int testInterval);
 	void SetBatchSize(unsigned int batchSize);

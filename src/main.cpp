@@ -89,7 +89,17 @@ int main(int argc, char *argv[])
 
 		if (parser.isSet("network"))
 		{
-			train.SetTrainDirectory(parser.value("network"));
+			train.SetNetworkPath(parser.value("network"));
+		}
+
+		if (parser.isSet("image_name"))
+		{
+			train.SetImageName(parser.value("image_name"));
+		}
+
+		if (parser.isSet("label_name"))
+		{
+			train.SetLabelName(parser.value("label_name"));
 		}
 
 		if (parser.isSet("lr"))

@@ -14,7 +14,7 @@ struct image_info
 // A single smaple. A mini-batch comprises man of these
 struct sample
 {
-	dlib::matrix<dlib::bgr_pixel> image;
+	dlib::matrix<float> image;
 	dlib::matrix<uint16_t> label;
 };
 

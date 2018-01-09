@@ -61,24 +61,25 @@ void ExtractImageFrom3D(typename itk::Image<inputType, 3>::Pointer Image3D, type
 	}
 };
 
-template<typename inputType>
+template<typename inputType, typename outputType>
 void ConvertToCVImage(typename itk::Image<inputType, 2>::Pointer ITK2DImageInput, cv::Mat& cvImageOutput)
 {
 	typedef itk::Image<inputType, 2> inputImageType;
 
-	// cast and rescale image from float to unsigned char
-	typedef itk::RescaleIntensityImageFilter<inputImageType, LabelImage2DType> RescaleFilter2DType;// note that label image is equivalent to unsigned char image
+	// cast and rescale image from inputType to [0,255]
+	typedef itk::RescaleIntensityImageFilter<inputImageType, itk::Image<outputType,2>> RescaleFilter2DType;// note that label image is equivalent to unsigned char image
 
 	RescaleFilter2DType::Pointer rescaleFilter = RescaleFilter2DType::New();
 	rescaleFilter->SetInput(ITK2DImageInput);
 
 	if (!std::is_same<typename inputType, unsigned char>::value && !std::is_same<typename inputType, unsigned int>::value)
 	{
-		rescaleFilter->SetOutputMinimum(0);
-		rescaleFilter->SetOutputMaximum(255);
+		rescaleFilter->SetOutputMinimum(0.0);
+		rescaleFilter->SetOutputMaximum(255.0);
 	}
 	else
 	{
+		// this will not change the image value
 		itk::MinimumMaximumImageCalculator<inputImageType>::Pointer minMaxCal = itk::MinimumMaximumImageCalculator<inputImageType>::New();
 		minMaxCal->SetImage(ITK2DImageInput);
 		minMaxCal->Compute();
@@ -86,9 +87,10 @@ void ConvertToCVImage(typename itk::Image<inputType, 2>::Pointer ITK2DImageInput
 		rescaleFilter->SetOutputMaximum(minMaxCal->GetMaximum());
 	}
 	rescaleFilter->Update();
+	
 
 	// cast image from itk to opencv
-	cv::Mat img = itk::OpenCVImageBridge::ITKImageToCVMat< LabelImage2DType >(rescaleFilter->GetOutput()); // label image 2d type is same as unsigned char 2d type
+	cv::Mat img = itk::OpenCVImageBridge::ITKImageToCVMat<itk::Image<typename outputType, 2> >(rescaleFilter->GetOutput());
 
 	cvImageOutput = img.clone();
 };
@@ -135,17 +137,17 @@ void randomly_crop_image(
 
 	// convert the itk 2D image to openCV mat then to dlib matrix
 	cv::Mat imageCV, labelCV;
-	ConvertToCVImage<inputImageType>(image2D, imageCV);
+	ConvertToCVImage<inputImageType, float>(image2D, imageCV);
 	//std::cout << "convert image from itk to opencv finish" << std::endl;
-	ConvertToCVImage<LabelImage2DType::PixelType>(label2D, labelCV);
+	ConvertToCVImage<LabelImage2DType::PixelType, unsigned char>(label2D, labelCV);
 	//std::cout << "convert label from itk to opencv finish" << std::endl;
 
 	// Convert openCV mat to dlib matrix
-	cv::Mat imageCVBGR;
-	cv::cvtColor(imageCV, imageCVBGR, CV_GRAY2BGR);
+	//cv::Mat imageCVBGR;
+	//cv::cvtColor(imageCV, imageCVBGR, CV_GRAY2BGR);
 
-	dlib::cv_image<dlib::bgr_pixel> imageDlibCV(imageCVBGR);
-	dlib::matrix<dlib::bgr_pixel> imageDlib;
+	dlib::cv_image<float> imageDlibCV(imageCV);
+	dlib::matrix<float> imageDlib;
 	dlib::assign_image(imageDlib, imageDlibCV);
 
 	dlib::cv_image<unsigned char> labelDlibCV(labelCV);

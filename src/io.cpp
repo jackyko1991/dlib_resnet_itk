@@ -48,7 +48,7 @@ std::vector<image_info> get_image_listing(
 }
 
 dlib::rectangle make_random_cropping_rect_resnet(
-	const dlib::matrix<dlib::bgr_pixel>& img,
+	const dlib::matrix<float>& img,
 	dlib::rand& rnd
 )
 {

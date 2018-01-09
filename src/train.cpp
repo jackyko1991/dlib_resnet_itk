@@ -73,7 +73,7 @@ void trainDNN::Train()
 		return;
 	}
 
-	std::vector<dlib::matrix<dlib::bgr_pixel>> images;
+	std::vector<dlib::matrix<float>> images;
 	std::vector<dlib::matrix<uint16_t>> labels;
 
 	// Start a bunch of threads that read images from disk and pull out random crops.  It's
@@ -86,7 +86,7 @@ void trainDNN::Train()
 	auto f = [&data, &trainListing](time_t seed)
 	{
 		dlib::rand rnd(time(0) + seed);
-		dlib::matrix<dlib::bgr_pixel> input_image;
+		dlib::matrix<float> input_image;
 		dlib::matrix<uint16_t> index_label_image;
 		sample temp;
 		while (data.is_enabled())
@@ -105,11 +105,16 @@ void trainDNN::Train()
 			labelReader->SetFileName(image_info.label_filename.toStdString());
 			labelReader->Update();
 
+			// perform normalization on the images
+			itk::NormalizeImageFilter<Image3DType, Image3DType>::Pointer normalFilter = itk::NormalizeImageFilter<Image3DType, Image3DType>::New();
+			normalFilter->SetInput(imageReader->GetOutput());
+			normalFilter->Update();
+
 			//std::cout << image_info.image_filename.toStdString() << std::endl;
 			//std::cout << image_info.label_filename.toStdString() << std::endl;
 
 			// Randomly pick a part of the image.
-			randomly_crop_image<Image3DType::PixelType>(imageReader->GetOutput(), labelReader->GetOutput(), temp, rnd);
+			randomly_crop_image<Image3DType::PixelType>(normalFilter->GetOutput(), labelReader->GetOutput(), temp, rnd);
 
 			// Push the result to be used by the trainer.
 			data.enqueue(temp);
@@ -202,4 +207,19 @@ void trainDNN::SetTestInterval(unsigned int testInterval)
 void trainDNN::SetDataQueueSize(unsigned int dataQueueSize)
 {
 	m_dataQueueSize = dataQueueSize;
+}
+
+void trainDNN::SetNetworkPath(QString networkPath)
+{
+	m_networkPath = networkPath;
+}
+
+void trainDNN::SetImageName(QString imageName)
+{
+	m_imageName = imageName;
+}
+
+void trainDNN::SetLabelName(QString labelName)
+{
+	m_labelName = labelName;
 }
