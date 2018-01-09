@@ -7,6 +7,7 @@
 #include "itkImage.h"
 #include "itkOpenCVImageBridge.h"
 #include "itkImageFileReader.h"
+#include "itkStatisticsImageFilter.h"
 
 #include <dlib/opencv.h>
 
@@ -102,13 +103,7 @@ void randomly_crop_image(
 	sample& outputSample,
 	dlib::rand& rnd)
 {
-	// Randomly select a layer from the input image
-	int rndSliceNum = -1;
-	while (rndSliceNum < 0)
-	{
-		rndSliceNum = rnd.get_integer(image->GetLargestPossibleRegion().GetSize()[2] - 1);
-	}
-
+	// Randomly select a layer from the input image, ensure that slice contain a label
 	Image2DType::Pointer image2D = Image2DType::New();
 	LabelImage2DType::Pointer label2D = LabelImage2DType::New();
 	Image2DType::RegionType region2D;
@@ -130,10 +125,26 @@ void randomly_crop_image(
 	label2D->SetRegions(region2D);
 	label2D->Allocate();
 
-	ExtractImageFrom3D<inputImageType, inputImageType>(image, image2D, rndSliceNum);
-	//std::cout << "extract image from 3D finish" << std::endl;
-	ExtractImageFrom3D<LabelImage3DType::PixelType, LabelImage3DType::PixelType>(label, label2D, rndSliceNum);
-	//std::cout << "extract label from 3D finish" << std::endl;
+	double labelSum = 0;
+	while (labelSum < 1)
+	{
+		int rndSliceNum = -1;
+		while (rndSliceNum < 0)
+		{
+			rndSliceNum = rnd.get_integer(image->GetLargestPossibleRegion().GetSize()[2] - 1);
+		}
+
+		ExtractImageFrom3D<inputImageType, inputImageType>(image, image2D, rndSliceNum);
+		//std::cout << "extract image from 3D finish" << std::endl;
+		ExtractImageFrom3D<LabelImage3DType::PixelType, LabelImage3DType::PixelType>(label, label2D, rndSliceNum);
+		//std::cout << "extract label from 3D finish" << std::endl;
+
+		// check the label sum
+		itk::StatisticsImageFilter<LabelImage2DType>::Pointer statFilter = itk::StatisticsImageFilter<LabelImage2DType>::New();
+		statFilter->SetInput(label2D);
+		statFilter->Update();
+		labelSum = statFilter->GetSum();
+	}
 
 	// convert the itk 2D image to openCV mat then to dlib matrix
 	cv::Mat imageCV, labelCV;
@@ -157,17 +168,32 @@ void randomly_crop_image(
 	// cast label image from unsigned char to uint16_t
 	dlib::matrix<uint16_t> labelDlib = dlib::matrix_cast<uint16_t>(labelDlibUC);
 
-	const auto rect = make_random_cropping_rect_resnet(imageDlib, rnd);
+	// the cropped label image should not be biased
+	labelSum = 0;
 
-	const dlib::chip_details chip_details(rect, dlib::chip_dims(227, 227));
+	while (labelSum < 1)
+	{
+		const auto rect = make_random_cropping_rect_resnet(imageDlib, rnd);
 
-	// Crop the input image.
-	dlib::extract_image_chip(imageDlib, chip_details, outputSample.image, dlib::interpolate_bilinear());
+		const dlib::chip_details chip_details(rect, dlib::chip_dims(227, 227));
 
-	// Crop the labels correspondingly. However, note that here bilinear
-	// interpolation would make absolutely no sense - you wouldn't say that
-	// a bicycle is half-way between an aeroplane and a bird, would you?
-	dlib::extract_image_chip(labelDlib, chip_details, outputSample.label, dlib::interpolate_nearest_neighbor());
+		// Crop the input image.
+		dlib::extract_image_chip(imageDlib, chip_details, outputSample.image, dlib::interpolate_bilinear());
+
+		// Crop the labels correspondingly. However, note that here bilinear
+		// interpolation would make absolutely no sense - you wouldn't say that
+		// a bicycle is half-way between an aeroplane and a bird, would you?
+		dlib::extract_image_chip(labelDlib, chip_details, outputSample.label, dlib::interpolate_nearest_neighbor());
+		// loop over all the rows
+		for (long r = 0; r < outputSample.label.nr(); ++r)
+		{
+			// loop over all the columns
+			for (long c = 0; c < outputSample.label.nc(); ++c)
+			{
+				labelSum += outputSample.label(r, c);
+			}
+		}
+	}
 
 	// Also randomly flip the input image and the labels.
 	if (rnd.get_random_double() > 0.5)

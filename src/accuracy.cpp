@@ -92,6 +92,13 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 			labelITK->Graft(labelResampler->GetOutput());
 			labelITK->SetMetaDataDictionary(labelResampler->GetOutput()->GetMetaDataDictionary());
 		}
+		else
+		{
+			imageITK->Graft(normalFilter->GetOutput());
+			imageITK->SetMetaDataDictionary(normalFilter->GetOutput()->GetMetaDataDictionary());
+			labelITK->Graft(labelReader->GetOutput());
+			labelITK->SetMetaDataDictionary(normalFilter->GetOutput()->GetMetaDataDictionary());
+		}
 
 		//std::cout << "===========================================" << std::endl;
 		//std::cout << "image" << std::endl;
@@ -107,8 +114,8 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		{
 			rndSliceNum = rnd.get_integer(labelITK->GetLargestPossibleRegion().GetSize()[2] - 1);
 		}
-		std::cout << image_info.image_filename.toStdString() << std::endl;
-		std::cout << "Selected Slice: " << rndSliceNum << std::endl;
+		//std::cout << image_info.image_filename.toStdString() << std::endl;
+		//std::cout << "Selected Slice: " << rndSliceNum << std::endl;
 
 		Image2DType::Pointer image2D = Image2DType::New();
 		LabelImage2DType::Pointer label2D = LabelImage2DType::New();

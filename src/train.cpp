@@ -110,11 +110,80 @@ void trainDNN::Train()
 			normalFilter->SetInput(imageReader->GetOutput());
 			normalFilter->Update();
 
-			//std::cout << image_info.image_filename.toStdString() << std::endl;
-			//std::cout << image_info.label_filename.toStdString() << std::endl;
+			// resample to isotropic image
+			Image3DType::Pointer imageITK = Image3DType::New();
+			LabelImage3DType::Pointer labelITK = LabelImage3DType::New();
+
+			if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
+				imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] ||
+				imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+			{
+				Image3DType::SpacingType oldSpacing = imageReader->GetOutput()->GetSpacing();
+				Image3DType::SizeType oldSize = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize();
+
+				// using min voxel spacing
+				Image3DType::SpacingType newSpacing;
+				double minSpacing = 9999999999999.9;
+				for (int i = 0; i < 3; i++)
+				{
+					if (imageReader->GetOutput()->GetSpacing()[i] < minSpacing)
+						minSpacing = imageReader->GetOutput()->GetSpacing()[i];
+				}
+
+				for (int i = 0; i < 3; i++)
+				{
+					newSpacing[i] = minSpacing;
+				}
+
+				Image3DType::SizeType newSize;
+				for (int i = 0; i < 3; i++)
+				{
+					newSize[i] = ceil(oldSpacing[i] * oldSize[i] / newSpacing[i]);
+				}
+
+				// linear interpolator for image
+				typedef itk::LinearInterpolateImageFunction< Image3DType> LinearInterpolatorType;
+				LinearInterpolatorType::Pointer linInterpolator = LinearInterpolatorType::New();
+
+				itk::ResampleImageFilter<Image3DType, Image3DType>::Pointer imageResampler = itk::ResampleImageFilter<Image3DType, Image3DType>::New();
+				imageResampler->SetInput(normalFilter->GetOutput());
+				imageResampler->SetOutputSpacing(newSpacing);
+				imageResampler->SetSize(newSize);
+				imageResampler->SetInterpolator(linInterpolator);
+				imageResampler->SetOutputOrigin(normalFilter->GetOutput()->GetOrigin());
+				imageResampler->SetOutputDirection(normalFilter->GetOutput()->GetDirection());
+				imageResampler->Update();
+				imageITK->Graft(imageResampler->GetOutput());
+				imageITK->SetMetaDataDictionary(imageResampler->GetOutput()->GetMetaDataDictionary());
+
+				// nearest neighbour interpolator for label
+				typedef itk::NearestNeighborInterpolateImageFunction< LabelImage3DType> NNInterpolatorType;
+				NNInterpolatorType::Pointer nnInterpolator = NNInterpolatorType::New();
+
+				itk::ResampleImageFilter<LabelImage3DType, LabelImage3DType>::Pointer labelResampler = itk::ResampleImageFilter<LabelImage3DType, LabelImage3DType>::New();
+				labelResampler->SetInput(labelReader->GetOutput());
+				labelResampler->SetOutputSpacing(newSpacing);
+				labelResampler->SetSize(newSize);
+				labelResampler->SetInterpolator(nnInterpolator);
+				labelResampler->SetOutputOrigin(normalFilter->GetOutput()->GetOrigin());
+				labelResampler->SetOutputDirection(normalFilter->GetOutput()->GetDirection());
+				labelResampler->Update();
+				labelITK->Graft(labelResampler->GetOutput());
+				labelITK->SetMetaDataDictionary(labelResampler->GetOutput()->GetMetaDataDictionary());
+			}
+			else
+			{
+				imageITK->Graft(normalFilter->GetOutput());
+				imageITK->SetMetaDataDictionary(normalFilter->GetOutput()->GetMetaDataDictionary());
+				labelITK->Graft(labelReader->GetOutput());
+				labelITK->SetMetaDataDictionary(normalFilter->GetOutput()->GetMetaDataDictionary());
+			}
 
 			// Randomly pick a part of the image.
-			randomly_crop_image<Image3DType::PixelType>(normalFilter->GetOutput(), labelReader->GetOutput(), temp, rnd);
+			randomly_crop_image<Image3DType::PixelType>(imageITK, labelITK, temp, rnd);
+
+			//std::cout << image_info.image_filename.toStdString() << std::endl;
+			//std::cout << image_info.label_filename.toStdString() << std::endl;
 
 			// Push the result to be used by the trainer.
 			data.enqueue(temp);
