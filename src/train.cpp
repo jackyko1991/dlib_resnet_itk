@@ -49,10 +49,17 @@ void trainDNN::Train()
 {
 	net_type net;
 
+	//std::cout << net << std::endl;
+	//layer<3>(net).get_output();
+	//// Or to print the prelu parameter for layer 7 we can say:
+	//std::cout << "prelu param: " << layer<1>(net).layer_details().get_initial_param_value() << std::endl;
+	//system("pause");
+
 	dlib::dnn_trainer<net_type> trainer(net, dlib::sgd(m_decayWeight, m_momentum));
 	if (m_trainerVerbose)
 		trainer.be_verbose();
 	trainer.set_learning_rate(m_initialLearningRate);
+	//trainer.set_learning_rate_shrink_factor(0.1);
 	trainer.set_synchronization_file(m_trainStatePath.toStdString(), std::chrono::minutes(10));
 	// This threshold is probably excessively large.
 	trainer.set_iterations_without_progress_threshold(m_progressThreshold);
@@ -114,9 +121,10 @@ void trainDNN::Train()
 			Image3DType::Pointer imageITK = Image3DType::New();
 			LabelImage3DType::Pointer labelITK = LabelImage3DType::New();
 
-			if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
-				imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] ||
-				imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+			//if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
+			//	imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] ||
+			//	imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+			if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1])
 			{
 				Image3DType::SpacingType oldSpacing = imageReader->GetOutput()->GetSpacing();
 				Image3DType::SizeType oldSize = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize();
@@ -227,10 +235,16 @@ void trainDNN::Train()
 			//my_window2.wait_until_closed();
 		}
 
+		// save one image out to check if it is correct
+		dlib::save_jpeg(images.at(0), "./output/image_train.jpg");
+		dlib::save_jpeg(labels.at(0) * 255, "./output/ground_truth_train.jpg");
+
 		trainer.train_one_step(images, labels);
+		std::cout << "Finish train step " << trainer.get_train_one_step_calls() << std::endl;
 
 		if (trainer.get_train_one_step_calls() % m_testInterval == 0 && iterCount != 0 && !m_testDir.isEmpty())
 		{
+			std::cout << "Clean the network..." << std::endl;
 			trainer.get_net();
 			net.clean();
 
@@ -238,7 +252,6 @@ void trainDNN::Train()
 
 			 //Find the accuracy of the newly trained network on both the training and the validation sets.
 			std::cout << "Test accuracy = " << calculate_accuracy(net, get_image_listing(m_testDir,m_imageName, m_labelName)) << std::endl;
-
 		}
 
 		iterCount++;

@@ -35,9 +35,10 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		Image3DType::Pointer imageITK = Image3DType::New();
 		LabelImage3DType::Pointer labelITK = LabelImage3DType::New();
 
-		if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
-			imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] || 
-			imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+		//if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1] ||
+		//	imageReader->GetOutput()->GetSpacing()[1] != imageReader->GetOutput()->GetSpacing()[2] || 
+		//	imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[2])
+		if (imageReader->GetOutput()->GetSpacing()[0] != imageReader->GetOutput()->GetSpacing()[1])
 		{
 			Image3DType::SpacingType oldSpacing = imageReader->GetOutput()->GetSpacing();
 			Image3DType::SizeType oldSize = imageReader->GetOutput()->GetLargestPossibleRegion().GetSize();
@@ -169,16 +170,13 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 		// that is not exactly the same size as the input.
 		const dlib::matrix<uint16_t> temp = anet(image);
 
-		//// Convert the indexes to RGB values.
-		//rgb_label_image_to_index_label_image(rgb_label_image, index_label_image);
-
-		// Crop the net output to be exactly the same size as the input.
-		const dlib::chip_details chip_details(
-			dlib::centered_rect(temp.nc() / 2, temp.nr() / 2, image.nc(), image.nr()),
-			dlib::chip_dims(image.nr(), image.nc())
-		);
-		dlib::matrix<uint16_t> net_output;
-		dlib::extract_image_chip(temp, chip_details, net_output, dlib::interpolate_nearest_neighbor());
+		//// Crop the net output to be exactly the same size as the input.
+		//const dlib::chip_details chip_details(
+		//	dlib::centered_rect(temp.nc() / 2, temp.nr() / 2, image.nc(), image.nr()),
+		//	dlib::chip_dims(image.nr(), image.nc())
+		//);
+		dlib::matrix<uint16_t> net_output = temp;
+		//dlib::extract_image_chip(temp, chip_details, net_output, dlib::interpolate_nearest_neighbor());
 
 		// visualize the result
 		// convert net_output to opencv mat
@@ -209,9 +207,13 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 
 		dlib::save_jpeg(imageDlib,"./output/image.jpg");
 		dlib::save_jpeg(label*255,"./output/ground_truth.jpg");
-		dlib::save_jpeg(net_output *255,"./output/output.jpg");
+		dlib::save_jpeg(temp *255,"./output/output.jpg");
 
 		// Compare the predicted values to the ground-truth values.
+		uint16_t gtCount = 0; // ground truth count
+		uint16_t pCount = 0; // positive count
+		uint16_t oCount = 0; // overlap count
+
 		for (int r = 0; r < label.nr(); ++r)
 		{
 			for (int c = 0; c < label.nc(); ++c)
@@ -228,8 +230,31 @@ double calculate_accuracy(net_type& net, std::vector<image_info>& dataset)
 					{
 						++num_wrong;
 					}
+
+					// calculate dice similarity
+					if (truth == 1)
+					{
+						gtCount++;
+						if (prediction == 1)
+							oCount++;
+					}
+					if (prediction == 1)
+					{
+						pCount++;
+					}
 				}
 			}
+		}
+
+		uint16_t dice;
+		if (gtCount + pCount != 0)
+		{
+			dice = 2.0* oCount / (gtCount + pCount);
+			std::cout << "dice = " << dice << std::endl;
+		}
+		else
+		{
+			std::cout << "Empty label" << std::endl;
 		}
 	}
 

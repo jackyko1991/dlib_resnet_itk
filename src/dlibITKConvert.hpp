@@ -174,6 +174,7 @@ void randomly_crop_image(
 	while (labelSum < 1)
 	{
 		const auto rect = make_random_cropping_rect_resnet(imageDlib, rnd);
+		//dlib::rectangle rect(227, 227);
 
 		const dlib::chip_details chip_details(rect, dlib::chip_dims(227, 227));
 
